@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Add a vector tile source</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel="stylesheet" />
+    <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+    <div id="map"></div>
+
+<!--    <div class="logo">-->
+<!--        <img src="logo-alt.png" alt="Movement to Work">-->
+<!--    </div>-->
+
+    <div class="logo">
+        <img src="logo.png" alt="Movement to Work">
+        <h3><strong>Area: </strong></h3>
+        <p><span id="area">&#8203;</span></p>
+        <h3><strong>Claimant Count for 18-24: </strong></h3>
+        <p><span id="cc">&#8203;</span></p>
+    </div>
+
+    <div class="legend">
+        <h3>Legend</h3>
+        <h4>Number of claimants</h4>
+        <div><span style="background-color: #91003f"></span>1,200+</div>
+        <div><span style="background-color: #ce1256"></span>1,000 - 1,199</div>
+        <div><span style="background-color: #e7298a"></span>800 - 999</div>
+        <div><span style="background-color: #df65b0"></span>600 - 799</div>
+        <div><span style="background-color: #c994c7"></span>400 - 599</div>
+        <div><span style="background-color: #d4b9da"></span>200 - 399</div>
+        <div><span style="background-color: #f1eef6"></span>0 - 199</div>
+    </div>
+
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiY2otd2lsbGlhbXMiLCJhIjoiY2toemVyYXBsMTJsNzJ4bXAxaDdzZnlxcCJ9.meSfeLQEITOvgfyMFt8M9A';
+
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/dark-v10',
+            zoom: 5,
+            center: [-2.89479, 54.093409],
+            attributionControl: false
+        });
+
+        map.on('load', function () {
+            map.addSource('boundaries', {
+            type: 'vector',
+            url: 'mapbox://cj-williams.84koznpu',
+            });
+            map.addLayer({
+            'id': 'boundaries',
+            'type': 'fill',
+            'source': 'boundaries',
+            'source-layer': 'boundariesdata',
+            'paint': {
+                'fill-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['get', 'cc_count'],
+                    0,
+                    '#f1eef6',
+                    200,
+                    '#d4b9da',
+                    400,
+                    '#c994c7',
+                    600,
+                    '#df65b0',
+                    800,
+                    '#e7298a',
+                    1000,
+                    '#ce1256',
+                    1200,
+                    '#91003f'
+                    ],
+                'fill-opacity': [
+                    'case',
+                    ['boolean', ['feature-state', 'hover'], false],
+                    1,
+                    0.75
+                ]
+            }
+
+            },  'poi-label');
+        });
+
+        map.addControl(new mapboxgl.NavigationControl());
+
+        var popup = new mapboxgl.Popup({
+            closeButton: true,
+            closeOnClick: true
+        });
+
+        var hoveredStateId = null;
+
+        var area = document.getElementById('area')
+        var cc = document.getElementById('cc')
+
+        // When the user moves their mouse over the state-fill layer, we'll update the
+        // feature state for the feature under the mouse.
+        map.on('mousemove', 'boundaries', function (e) {
+            map.getCanvas().style.cursor = 'pointer';
+            if (e.features.length > 0) {
+                if (hoveredStateId) {
+                    map.setFeatureState(
+                        { source: 'boundaries', sourceLayer: "boundariesdata", id: hoveredStateId },
+                        { hover: false }
+                    );
+
+                    area.innerText = ""
+                    cc.innerText = ""
+                }
+                hoveredStateId = e.features[0].id;
+                map.setFeatureState(
+                    { source: 'boundaries', sourceLayer: "boundariesdata", id: hoveredStateId },
+                    { hover: true }
+                );
+                area.innerText = e.features[0].properties.pcon19nm;
+                cc.innerText = e.features[0].properties.cc_count
+            }
+        });
+
+        map.on('click', 'boundaries', function(e) {
+            // popup.remove();
+            map.getCanvas().style.cursor = 'pointer';
+
+            popup.setLngLat(e.lngLat)
+                .setHTML()
+                .addTo(map)
+        });
+
+        map.on('mouseleave', 'boundaries', function () {
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+        });
+    </script>
+</body>
+</html>
